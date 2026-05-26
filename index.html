@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拒绝乱撒币 - 普通人生活理财小助手</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --primary:#6366f1;--primary-light:#818cf8;--primary-dark:#4f46e5;
+  --danger:#ef4444;--warning:#f59e0b;--success:#10b981;--info:#3b82f6;
+  --bg:#f1f5f9;--card:#fff;--text:#1e293b;--text2:#64748b;--border:#e2e8f0;
+  --radius:12px;--shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:linear-gradient(135deg,var(--primary-dark),var(--primary));color:#fff;padding:20px 24px;position:sticky;top:0;z-index:100;box-shadow:0 4px 12px rgba(99,102,241,.3)}
+.header h1{font-size:22px;font-weight:700}
+.header p{font-size:13px;opacity:.85;margin-top:4px}
+.nav{display:flex;gap:4px;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto;position:sticky;top:82px;z-index:99}
+.nav button{padding:8px 16px;border:none;background:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap;color:var(--text2);transition:all .2s}
+.nav button:hover{background:#f1f5f9;color:var(--text)}
+.nav button.active{background:var(--primary);color:#fff;font-weight:600}
+.main{padding:24px;max-width:1200px;margin:0 auto}
+.tab{display:none}
+.tab.active{display:block}
+.card{background:var(--card);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);margin-bottom:20px}
+.card h2{font-size:18px;margin-bottom:16px;color:var(--text)}
+.card h3{font-size:15px;margin-bottom:12px;color:var(--text)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);text-align:center}
+.stat-card .label{font-size:13px;color:var(--text2);margin-bottom:6px}
+.stat-card .value{font-size:28px;font-weight:700}
+.stat-card .value.income{color:var(--success)}
+.stat-card .value.expense{color:var(--danger)}
+.stat-card .value.saved{color:var(--primary)}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+@media(max-width:768px){.charts-row{grid-template-columns:1fr}}
+.btn{padding:10px 20px;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-success{background:var(--success);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-outline{border:2px solid var(--primary);color:var(--primary);background:none}
+.btn-outline:hover{background:var(--primary);color:#fff}
+.btn-sm{padding:6px 12px;font-size:12px}
+input,select,textarea{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none;transition:border .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--text2)}
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:40px;text-align:center;cursor:pointer;transition:all .2s}
+.upload-zone:hover{border-color:var(--primary);background:#f8fafc}
+.upload-zone .icon{font-size:48px;margin-bottom:12px}
+.upload-zone .hint{font-size:13px;color:var(--text2);margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;background:#f8fafc;font-weight:600;color:var(--text2);border-bottom:2px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid var(--border)}
+tr:hover td{background:#f8fafc}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;display:inline-block}
+.badge-waste{background:#fef2f2;color:var(--danger)}
+.badge-save{background:#ecfdf5;color:var(--success)}
+.badge-warn{background:#fffbeb;color:var(--warning)}
+.progress-bar{height:10px;background:var(--border);border-radius:5px;overflow:hidden;margin:8px 0}
+.progress-bar .fill{border-radius:5px;height:100%;transition:width .5s}
+.progress-bar .fill.green{background:var(--success)}
+.progress-bar .fill.yellow{background:var(--warning)}
+.progress-bar .fill.red{background:var(--danger)}
+.progress-bar .fill.blue{background:var(--primary)}
+.alert{padding:14px 18px;border-radius:var(--radius);margin-bottom:16px;font-size:14px;font-weight:500}
+.alert-info{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+.alert-warning{background:#fffbeb;color:#b45309;border:1px solid #fde68a}
+.alert-success{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+.alert-danger{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+.tip-card{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:12px;border-left:4px solid var(--primary);cursor:pointer;transition:all .2s}
+.tip-card:hover{transform:translateX(4px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.tip-card .cat{font-size:11px;color:var(--primary);font-weight:700;text-transform:uppercase;margin-bottom:4px}
+.tip-card .title{font-size:15px;font-weight:600;margin-bottom:6px}
+.tip-card .desc{font-size:13px;color:var(--text2);line-height:1.6}
+.food-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.food-card{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);transition:all .2s}
+.food-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.food-card .food-img{height:140px;background:linear-gradient(135deg,#fee2e2,#fef3c7);display:flex;align-items:center;justify-content:center;font-size:64px}
+.food-card .food-body{padding:16px}
+.food-card .food-name{font-size:15px;font-weight:600;margin-bottom:4px}
+.food-card .food-price{font-size:18px;font-weight:700;color:var(--danger)}
+.food-card .food-save{font-size:12px;color:var(--success);margin-top:4px}
+.food-card .food-meta{display:flex;gap:12px;font-size:12px;color:var(--text2);margin-top:6px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:200;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--card);border-radius:var(--radius);padding:32px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal h3{font-size:20px;margin-bottom:16px}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty-state .icon{font-size:64px;margin-bottom:16px}
+.empty-state p{font-size:15px}
+.hidden{display:none!important}
+.toggle-group{display:flex;gap:8px;margin-bottom:16px}
+.toggle-btn{padding:8px 20px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer;font-size:13px;transition:all .2s}
+.toggle-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.flex-row{display:flex;gap:12px;align-items:center}
+.flex-between{display:flex;justify-content:space-between;align-items:center}
+.text-sm{font-size:13px;color:var(--text2)}
+.text-right{text-align:right}
+.mt-2{margin-top:8px}
+.mt-4{margin-top:16px}
+.mb-2{margin-bottom:8px}
+.mb-4{margin-bottom:16px}
+.gap-2{gap:8px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>💰 拒绝乱撒币</h1>
+  <p>普通人生活理财小助手 · 你的每一分钱都值得被认真对待</p>
+</div>
+
+<div class="nav" id="nav">
+  <button class="active" data-tab="dashboard">📊 首页总览</button>
+  <button data-tab="import">📥 导入账单</button>
+  <button data-tab="analysis">📈 消费分析</button>
+  <button data-tab="waste">🗑️ 浪费识别</button>
+  <button data-tab="plan">💡 省钱方案</button>
+  <button data-tab="budget">🎯 预算管控</button>
+  <button data-tab="goals">🏆 攒钱目标</button>
+  <button data-tab="tips">📝 省钱妙招</button>
+  <button data-tab="food">🍜 附近美食</button>
+</div>
+
+<div class="main">
+
+<!-- ====== 首页总览 ====== -->
+<div class="tab active" id="tab-dashboard">
+  <div class="stats-grid" id="dashStats"></div>
+  <div class="charts-row">
+    <div class="card"><h2>📊 本月支出分类</h2><canvas id="dashPie" height="280"></canvas></div>
+    <div class="card"><h2>📅 近6个月收支趋势</h2><canvas id="dashBar" height="280"></canvas></div>
+  </div>
+  <div class="card" id="dashWasteAlert"></div>
+  <div class="card" id="dashGoals"></div>
+</div>
+
+<!-- ====== 导入账单 ====== -->
+<div class="tab" id="tab-import">
+  <div class="card">
+    <h2>📥 导入微信账单</h2>
+    <div class="alert alert-info">
+      <strong>💡 如何导出微信账单？</strong><br>
+      微信 → 我 → 服务 → 钱包 → 账单 → 右上角「常见问题」→ 「下载账单」→ 选择「用作证明材料」→ 填写邮箱 → 下载解压后上传 CSV 文件
+    </div>
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">📁</div>
+      <div><strong>点击上传</strong> 或拖拽 CSV/Excel 文件到此处</div>
+      <div class="hint">支持微信账单 CSV、Excel (.csv / .xlsx)</div>
+      <input type="file" id="fileInput" accept=".csv,.xlsx" style="display:none" onchange="handleFile(event)">
+    </div>
+    <div id="importResult" class="hidden mt-4"></div>
+  </div>
+  <div class="card" id="manualAddCard">
+    <h2>✏️ 手动添加记录</h2>
+    <div class="flex-row" style="flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:140px">
+        <label>日期</label><input type="date" id="manDate">
+      </div>
+      <div class="form-group" style="flex:1;min-width:100px">
+        <label>金额</label><input type="number" id="manAmount" placeholder="0.00" step="0.01">
+      </div>
+      <div class="form-group" style="flex:1;min-width:100px">
+        <label>类型</label><select id="manType"><option value="expense">支出</option><option value="income">收入</option></select>
+      </div>
+      <div class="form-group" style="flex:1;min-width:120px">
+        <label>分类</label><select id="manCat"></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>描述</label><input type="text" id="manDesc" placeholder="例如：楼下便利店买水">
+    </div>
+    <button class="btn btn-primary" onclick="addManual()">✅ 添加记录</button>
+  </div>
+  <div class="card" id="recentRecords">
+    <h2>📋 最近记录 <span class="text-sm" id="recordCount"></span></h2>
+    <div style="overflow-x:auto"><table id="recordTable"></table></div>
+    <div class="flex-between mt-4">
+      <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑️ 清空所有数据</button>
+      <button class="btn btn-outline btn-sm" onclick="exportData()">📤 导出数据 (JSON)</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 消费分析 ====== -->
+<div class="tab" id="tab-analysis">
+  <div class="stats-grid" id="analysisStats"></div>
+  <div class="charts-row">
+    <div class="card"><h2>🍩 支出分类占比</h2><canvas id="analysisPie" height="300"></canvas></div>
+    <div class="card"><h2>📊 月度支出趋势</h2><canvas id="analysisBar" height="300"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>📋 分类明细</h2>
+    <div style="overflow-x:auto"><table id="categoryTable"></table></div>
+  </div>
+</div>
+
+<!-- ====== 浪费识别 ====== -->
+<div class="tab" id="tab-waste">
+  <div class="alert alert-warning" id="wasteSummary"></div>
+  <div class="stats-grid" id="wasteStats"></div>
+  <div class="card">
+    <h2>🗑️ 浪费消费清单</h2>
+    <p class="text-sm mb-4">AI 智能识别：自动续费、冲动消费、高频小额开销</p>
+    <div style="overflow-x:auto"><table id="wasteTable"></table></div>
+  </div>
+</div>
+
+<!-- ====== 省钱方案 ====== -->
+<div class="tab" id="tab-plan">
+  <div class="card">
+    <h2>💡 个性化省钱方案</h2>
+    <p class="text-sm mb-4">基于你的消费数据，AI 生成月度省钱清单</p>
+    <div id="planContent"></div>
+    <button class="btn btn-primary mt-4" onclick="generatePlan()">🔄 重新生成方案</button>
+  </div>
+</div>
+
+<!-- ====== 预算管控 ====== -->
+<div class="tab" id="tab-budget">
+  <div class="card">
+    <h2>🎯 月度预算设置</h2>
+    <div class="flex-row" style="flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:200px">
+        <label>月消费预算 (元)</label>
+        <input type="number" id="budgetAmount" placeholder="例如：3000">
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end">
+        <button class="btn btn-primary" onclick="setBudget()">💾 保存预算</button>
+      </div>
+    </div>
+    <div id="budgetStatus" class="hidden">
+      <div class="mb-2"><strong>本月已消费：</strong><span id="budgetSpent"></span></div>
+      <div class="progress-bar"><div class="fill" id="budgetBar"></div></div>
+      <div class="flex-between mt-2">
+        <span class="text-sm" id="budgetPercent"></span>
+        <span class="text-sm" id="budgetRemain"></span>
+      </div>
+    </div>
+    <div id="budgetAlert" class="hidden"></div>
+  </div>
+</div>
+
+<!-- ====== 攒钱目标 ====== -->
+<div class="tab" id="tab-goals">
+  <div class="card">
+    <h2>🏆 攒钱目标管理</h2>
+    <div class="flex-row" style="flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:150px">
+        <label>目标名称</label><input type="text" id="goalName" placeholder="例如：买新手机">
+      </div>
+      <div class="form-group" style="flex:1;min-width:130px">
+        <label>目标金额 (元)</label><input type="number" id="goalTarget" placeholder="5000">
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end">
+        <button class="btn btn-primary" onclick="addGoal()">➕ 添加目标</button>
+      </div>
+    </div>
+    <div id="goalsList"></div>
+  </div>
+  <div class="card">
+    <h2>📊 累计省钱统计</h2>
+    <div class="stats-grid" id="savingsStats"></div>
+  </div>
+</div>
+
+<!-- ====== 省钱妙招 ====== -->
+<div class="tab" id="tab-tips">
+  <div class="toggle-group" id="tipCats"></div>
+  <div id="tipsList"></div>
+</div>
+
+<!-- ====== 附近美食 ====== -->
+<div class="tab" id="tab-food">
+  <div class="alert alert-warning">
+    ⚠️ <strong>附近美食推荐需要高德地图 API Key 才能获取真实数据。</strong><br>
+    目前展示示例数据。如需启用真实定位推荐，请前往 <a href="https://lbs.amap.com/" target="_blank">高德开放平台</a> 申请免费 API Key（每日 5000 次免费额度），然后配置到设置中。
+  </div>
+  <div class="card">
+    <h2>🔑 API 配置</h2>
+    <div class="flex-row" style="flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:250px">
+        <label>高德地图 API Key（可选）</label>
+        <input type="text" id="amapKey" placeholder="粘贴你的 Key">
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end">
+        <button class="btn btn-primary" onclick="saveAmapKey()">💾 保存</button>
+      </div>
+    </div>
+  </div>
+  <div class="food-grid" id="foodGrid"></div>
+</div>
+
+</div>
+
+<!-- 超支提醒弹窗 -->
+<div class="modal-overlay hidden" id="budgetModal">
+  <div class="modal">
+    <h3>🚨 钱包警报！</h3>
+    <p id="budgetModalMsg" style="font-size:16px;line-height:1.8;margin-bottom:20px"></p>
+    <button class="btn btn-primary" onclick="closeBudgetModal()">😅 我知道了，这个月省着点</button>
+  </div>
+</div>
+
+<script>
+// ===== 数据管理 =====
+const CATEGORIES = {
+  expense: ['餐饮', '购物', '交通', '娱乐', '住房', '通讯', '医疗', '教育', '人情', '日用', '服饰', '数码', '充值', '其他'],
+  income: ['工资', '兼职', '理财', '红包', '退款', '其他']
+};
+
+const CATEGORY_ICONS = {
+  '餐饮':'🍔','购物':'🛒','交通':'🚗','娱乐':'🎮','住房':'🏠','通讯':'📱',
+  '医疗':'💊','教育':'📚','人情':'🎁','日用':'🧴','服饰':'👗','数码':'💻','充值':'💳',
+  '工资':'💰','兼职':'💼','理财':'📈','红包':'🧧','退款':'↩️'
+};
+
+const CATEGORY_KEYWORDS = {
+  '餐饮': ['餐','饭','食','面','粉','菜','奶茶','咖啡','茶','饮','果','鸡','鸭','鱼','肉','汉堡','披萨','火锅',
+    '烤','串','麻辣','米','粥','饼','包','馒','KFC','麦当劳','星巴克','瑞幸','喜茶','奈雪','蜜雪冰城',
+    '美团','饿了么','外卖','小吃','夜宵','早','午','晚','零食','糖','豆','奶','水果'],
+  '交通': ['车','公交','地铁','打车','滴滴','出租','加油','充电','停车','高速','ETC','哈啰','单车','骑行',
+    '火车','高铁','飞机','机票','船','汽','票','行程'],
+  '购物': ['淘宝','京东','拼多多','天猫','唯品会','超市','便利店','杂货','日用品','洗发','沐浴','纸巾',
+    '洗衣','清洁','拖把','扫','桶','盆','碗','筷','锅','杯','壶'],
+  '娱乐': ['游戏','视频','影视','会员','音乐','KTV','电影','演出','门票','旅游','景点','景区','酒店',
+    '民宿','网吧','台球','麻将','棋','牌','腾讯视频','爱奇艺','优酷','B站','Netflix','Spotify','网易云'],
+  '通讯': ['话费','流量','宽带','电信','联通','移动','网络'],
+  '住房': ['房租','水电','物业','燃气','暖气','维修','装修','家具','家电'],
+  '服饰': ['衣','裤','鞋','袜','帽','包','饰','手','戒','链','耳环','腕','围巾','眼镜','墨镜'],
+  '数码': ['手机','电脑','平板','耳机','音响','充电','数据线','贴膜','壳'],
+  '充值': ['充值','Q币','点券','钻石','金币','直播','打赏','抖币'],
+  '医疗': ['药','医','院','挂号','体检','牙','眼','保健品','口罩','体温'],
+  '教育': ['书','课','培训','学习','考试','报名','学费','文具'],
+  '人情': ['红包','礼','结婚','生日','聚会','聚餐','请客','份子'],
+  '日用': ['牙膏','牙刷','毛巾','香皂','洗面','护肤','化妆','防晒','面膜','唇膏'],
+};
+
+function getData(){ return JSON.parse(localStorage.getItem('moneyHelper')||'{"transactions":[],"budget":0,"goals":[],"amapKey":""}') }
+function saveData(d){ localStorage.setItem('moneyHelper',JSON.stringify(d)) }
+
+function categorize(desc, type) {
+  desc = (desc||'').toLowerCase();
+  if (type === 'income') {
+    if (/工资|薪|奖金|报酬/.test(desc)) return '工资';
+    if (/兼职|副业|外快|打工/.test(desc)) return '兼职';
+    if (/利息|分红|理财|收益/.test(desc)) return '理财';
+    if (/红包/.test(desc)) return '红包';
+    if (/退款|退/.test(desc)) return '退款';
+    return '其他';
+  }
+  let best='其他',bestScore=0;
+  for (let [cat,kws] of Object.entries(CATEGORY_KEYWORDS)) {
+    let score=0;
+    for (let kw of kws) { if (desc.includes(kw)) score++ }
+    if (score>bestScore){ best=cat; bestScore=score }
+  }
+  return best;
+}
+
+function detectWaste(t) {
+  if (t.type !== 'expense') return { isWaste: false, reason: '', saveAmount: 0 };
+  const desc = (t.description||'').toLowerCase();
+  const cat = t.category;
+  const amt = t.amount;
+  
+  // 自动续费检测
+  const subKeywords = ['自动续费','订阅','会员','月卡','季卡','年卡','VIP','续费'];
+  for (let kw of subKeywords) {
+    if (desc.includes(kw) && amt > 0) {
+      return { isWaste: true, reason: '疑似自动续费/订阅服务', saveAmount: amt };
+    }
+  }
+  
+  // 冲动消费检测：小额高频
+  if (['餐饮','零食'].includes(cat) && amt < 20) {
+    return { isWaste: true, reason: '高频小额消费，累计浪费', saveAmount: Math.round(amt * 0.4) };
+  }
+  
+  // 游戏充值
+  if (cat === '充值' || cat === '娱乐') {
+    if (/(游戏|皮肤|抽奖|开箱|点券|钻石)/.test(desc) && amt > 30) {
+      return { isWaste: true, reason: '游戏/娱乐充值，可削减', saveAmount: Math.round(amt * 0.5) };
+    }
+  }
+  
+  // 外卖 vs 自己做饭
+  if (cat === '餐饮' && (desc.includes('外卖') || desc.includes('美团') || desc.includes('饿了么')) && amt > 25) {
+    return { isWaste: true, reason: '外卖支出较高，自己做饭可节省70%', saveAmount: Math.round(amt * 0.7) };
+  }
+  
+  // 奶茶/咖啡
+  if (cat === '餐饮' && /奶茶|咖啡|茶饮|星巴克|瑞幸|喜茶|奈雪/.test(desc) && amt > 15) {
+    return { isWaste: true, reason: '奶茶/咖啡消费可适当减少', saveAmount: Math.round(amt * 0.6) };
+  }
+  
+  return { isWaste: false, reason: '', saveAmount: 0 };
+}
+
+// ===== UI 导航 =====
+document.querySelectorAll('.nav button').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    const tab = this.dataset.tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-'+tab).classList.add('active');
+    refreshTab(tab);
+  });
+});
+
+function refreshTab(tab) {
+  switch(tab) {
+    case 'dashboard': renderDashboard(); break;
+    case 'import': renderImport(); break;
+    case 'analysis': renderAnalysis(); break;
+    case 'waste': renderWaste(); break;
+    case 'plan': renderPlan(); break;
+    case 'budget': renderBudget(); break;
+    case 'goals': renderGoals(); break;
+    case 'tips': renderTips(); break;
+    case 'food': renderFood(); break;
+  }
+}
+
+// ===== 首页 =====
+let dashPieChart=null, dashBarChart=null;
+function renderDashboard() {
+  const data = getData();
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  
+  const monthTx = data.transactions.filter(t => (t.date||'').startsWith(thisMonth));
+  const totalIncome = monthTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const totalExpense = monthTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const totalSaved = data.transactions.filter(t=>t.isWaste).reduce((s,t)=>s+t.saveAmount||0,0);
+  
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat-card"><div class="label">💰 本月收入</div><div class="value income">¥${totalIncome.toFixed(2)}</div></div>
+    <div class="stat-card"><div class="label">💸 本月支出</div><div class="value expense">¥${totalExpense.toFixed(2)}</div></div>
+    <div class="stat-card"><div class="label">💎 结余</div><div class="value" style="color:${totalIncome-totalExpense>=0?'var(--success)':'var(--danger)'}">¥${(totalIncome-totalExpense).toFixed(2)}</div></div>
+    <div class="stat-card"><div class="label">🛡️ 可省钱金额</div><div class="value saved">¥${totalSaved.toFixed(2)}</div></div>
+  `;
+  
+  // 饼图
+  const catMap = {};
+  monthTx.filter(t=>t.type==='expense').forEach(t => {
+    catMap[t.category] = (catMap[t.category]||0) + t.amount;
+  });
+  const labels = Object.keys(catMap);
+  const values = Object.values(catMap);
+  const colors = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#06b6d4','#f97316','#84cc16','#6366f1','#14b8a6','#a855f7','#78716c'];
+  
+  if (dashPieChart) dashPieChart.destroy();
+  const pctx = document.getElementById('dashPie');
+  if (pctx && labels.length) {
+    dashPieChart = new Chart(pctx, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data: values, backgroundColor: colors.slice(0,labels.length), borderWidth: 2, borderColor: '#fff' }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } } } }
+    });
+  }
+  
+  // 柱状图 - 近6个月
+  const months = [];
+  for (let i=5; i>=0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  const monthIncome = months.map(m => data.transactions.filter(t=>(t.date||'').startsWith(m)&&t.type==='income').reduce((s,t)=>s+t.amount,0));
+  const monthExpense = months.map(m => data.transactions.filter(t=>(t.date||'').startsWith(m)&&t.type==='expense').reduce((s,t)=>s+t.amount,0));
+  
+  if (dashBarChart) dashBarChart.destroy();
+  const bctx = document.getElementById('dashBar');
+  dashBarChart = new Chart(bctx, {
+    type: 'bar',
+    data: {
+      labels: months.map(m => m.substring(5)),
+      datasets: [
+        { label: '收入', data: monthIncome, backgroundColor: 'rgba(16,185,129,.7)', borderRadius: 6 },
+        { label: '支出', data: monthExpense, backgroundColor: 'rgba(239,68,68,.7)', borderRadius: 6 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+  });
+  
+  // 浪费提醒
+  const wasteTx = data.transactions.filter(t => t.isWaste);
+  if (wasteTx.length) {
+    document.getElementById('dashWasteAlert').innerHTML = `<h2>⚠️ 浪费提醒</h2><div class="alert alert-warning">本月检测到 <strong>${wasteTx.length}</strong> 笔可优化消费，合计可节省约 <strong>¥${wasteTx.reduce((s,t)=>s+(t.saveAmount||0),0).toFixed(2)}</strong>。👉 <a href="javascript:switchTab('waste')" style="color:var(--primary);font-weight:600">查看详情</a></div>`;
+    document.getElementById('dashWasteAlert').classList.remove('hidden');
+  } else {
+    document.getElementById('dashWasteAlert').classList.add('hidden');
+  }
+  
+  // 目标进度
+  if (data.goals.length) {
+    document.getElementById('dashGoals').innerHTML = '<h2>🏆 攒钱进度</h2>' + data.goals.map(g => {
+      const pct = Math.min(100, Math.round(g.current/g.target*100));
+      return `<div class="mb-4"><div class="flex-between mb-2"><strong>${g.name}</strong><span class="text-sm">¥${g.current} / ¥${g.target} (${pct}%)</span></div><div class="progress-bar"><div class="fill ${pct>=100?'green':pct>=50?'blue':'yellow'}" style="width:${pct}%"></div></div></div>`;
+    }).join('');
+    document.getElementById('dashGoals').classList.remove('hidden');
+  } else {
+    document.getElementById('dashGoals').classList.add('hidden');
+  }
+}
+
+// ===== 导入 =====
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    let rows = [];
+    if (file.name.endsWith('.csv')) {
+      rows = parseCSV(ev.target.result);
+    } else if (file.name.endsWith('.xlsx')) {
+      const wb = XLSX.read(ev.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(ws, {header:1});
+    }
+    processImport(rows);
+  };
+  if (file.name.endsWith('.csv')) reader.readAsText(file);
+  else reader.readAsBinaryString(file);
+}
+
+function parseCSV(text) {
+  const rows = [];
+  let row=[], cell='', inQuotes=false;
+  for (let i=0; i<text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch==='"') { if(text[i+1]==='"'){cell+='"';i++}else{inQuotes=false} }
+      else cell+=ch;
+    } else {
+      if (ch==='"') inQuotes=true;
+      else if (ch===','){row.push(cell.trim());cell=''}
+      else if (ch==='\n'||ch==='\r') {
+        if (ch==='\r'&&text[i+1]==='\n') i++;
+        row.push(cell.trim()); 
+        if (row.length>1 || row[0]) rows.push(row);
+        row=[]; cell='';
+      } else cell+=ch;
+    }
+  }
+  if (cell || row.length) { row.push(cell.trim()); if (row.length>1||row[0]) rows.push(row); }
+  return rows;
+}
+
+function processImport(rows) {
+  if (rows.length < 2) { alert('文件内容为空或格式不正确'); return; }
+  
+  // 尝试识别微信账单格式
+  const header = rows[0].map(h=>String(h||'').trim());
+  let dateCol=-1, typeCol=-1, descCol=-1, amountCol=-1, payCol=-1;
+  
+  for (let i=0; i<header.length; i++) {
+    const h = header[i];
+    if (/时间|日期|date/.test(h)) dateCol = i;
+    if (/收.?支|类型|type/.test(h)) typeCol = i;
+    if (/商品|对方|描述|说明|desc|商户/.test(h)) descCol = i;
+    if (/金额|amount/.test(h)) amountCol = i;
+    if (/支付方式|方式/.test(h)) payCol = i;
+  }
+  
+  // 微信账单特殊格式：第一行是微信支付账单明细，需要跳过
+  let startRow = 1;
+  if (rows[0].some(c => String(c||'').includes('微信支付'))) {
+    // 找到表头行
+    for (let i=0; i<Math.min(20,rows.length); i++) {
+      if (rows[i].some(c => String(c||'').includes('交易时间'))) {
+        startRow = i+1;
+        break;
+      }
+    }
+  }
+  
+  const data = getData();
+  let imported = 0, skipped = 0;
+  const existingDates = new Set(data.transactions.map(t => t.date+'|'+t.amount+'|'+t.description));
+  
+  for (let i=startRow; i<rows.length; i++) {
+    const row = rows[i];
+    if (!row||row.length<3) continue;
+    
+    let date='', type='expense', desc='', amount=0;
+    
+    if (dateCol>=0&&typeCol>=0&&amountCol>=0&&descCol>=0) {
+      // 标准CSV格式
+      date = parseDate(String(row[dateCol]||''));
+      const typeStr = String(row[typeCol]||'').trim();
+      type = typeStr.includes('收入')||typeStr.includes('入账') ? 'income' : 'expense';
+      desc = String(row[descCol]||'').trim();
+      amount = parseFloat(String(row[amountCol]||'0').replace(/[¥￥,]/g,'')) || 0;
+      if (type==='expense' && amount>0 && String(row[amountCol]||'').startsWith('-')) amount = Math.abs(amount);
+      if (type==='expense' && amount>0) amount = Math.abs(amount);
+    } else {
+      // 尝试智能解析
+      date = parseDate(String(row[0]||''));
+      if (!date) { skipped++; continue; }
+      const lastCell = String(row[row.length-1]||'').replace(/[¥￥,]/g,'');
+      amount = parseFloat(lastCell) || 0;
+      type = amount > 0 ? 'income' : 'expense';
+      amount = Math.abs(amount);
+      desc = row.slice(1, row.length-1).filter(c=>c!=='').join(' ') || '未知消费';
+    }
+    
+    if (!date || amount === 0) { skipped++; continue; }
+    
+    const key = date+'|'+amount+'|'+desc;
+    if (existingDates.has(key)) { skipped++; continue; }
+    existingDates.add(key);
+    
+    const category = categorize(desc, type);
+    const waste = type==='expense' ? detectWaste({type, amount, description:desc, category}) : {isWaste:false,reason:'',saveAmount:0};
+    
+    data.transactions.push({
+      id: Date.now() + '_' + Math.random().toString(36).substr(2,6),
+      date, amount, type, category, description: desc,
+      isWaste: waste.isWaste, wasteReason: waste.reason, saveAmount: waste.saveAmount
+    });
+    imported++;
+  }
+  
+  if (imported===0) {
+    alert('⚠️ 未能识别到有效的账单记录。请确认文件格式是否正确（微信账单 CSV）。');
+    return;
+  }
+  
+  data.transactions.sort((a,b) => b.date.localeCompare(a.date));
+  saveData(data);
+  
+  const result = document.getElementById('importResult');
+  result.classList.remove('hidden');
+  result.innerHTML = `<div class="alert alert-success">✅ 成功导入 <strong>${imported}</strong> 条记录！${skipped>0?`跳过 ${skipped} 条重复/无效记录。`:''}</div>`;
+  e.target.value = '';
+  renderImport();
+}
+
+function parseDate(str) {
+  str = String(str||'').trim();
+  // 2024-01-15, 2024/01/15, 20240115
+  let m = str.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  m = str.match(/(\d{4})(\d{2})(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return '';
+}
+
+function addManual() {
+  const date = document.getElementById('manDate').value;
+  const amount = parseFloat(document.getElementById('manAmount').value);
+  const type = document.getElementById('manType').value;
+  const cat = document.getElementById('manCat').value;
+  const desc = document.getElementById('manDesc').value;
+  
+  if (!date || !amount || !desc) { alert('请填写完整信息'); return; }
+  
+  const data = getData();
+  const waste = type==='expense' ? detectWaste({type, amount, description:desc, category:cat}) : {isWaste:false,reason:'',saveAmount:0};
+  data.transactions.unshift({
+    id: Date.now()+'_'+Math.random().toString(36).substr(2,6),
+    date, amount, type, category: cat || categorize(desc, type), description: desc,
+    isWaste: waste.isWaste, wasteReason: waste.reason, saveAmount: waste.saveAmount
+  });
+  data.transactions.sort((a,b) => b.date.localeCompare(a.date));
+  saveData(data);
+  
+  document.getElementById('manAmount').value='';
+  document.getElementById('manDesc').value='';
+  renderImport();
+}
+
+function populateCatSelect() {
+  const type = document.getElementById('manType').value;
+  const sel = document.getElementById('manCat');
+  sel.innerHTML = '<option value="">自动识别</option>';
+  (CATEGORIES[type]||[]).forEach(c => {
+    sel.innerHTML += `<option value="${c}">${CATEGORY_ICONS[c]||''} ${c}</option>`;
+  });
+}
+
+document.getElementById('manType').addEventListener('change', populateCatSelect);
+populateCatSelect();
+
+function renderImport() {
+  const data = getData();
+  const tbody = data.transactions.slice(0, 50).map(t => `
+    <tr>
+      <td>${t.date}</td>
+      <td style="color:${t.type==='income'?'var(--success)':'var(--danger)'}">${t.type==='income'?'+':'-'}¥${t.amount.toFixed(2)}</td>
+      <td>${CATEGORY_ICONS[t.category]||''} ${t.category}</td>
+      <td>${t.description}</td>
+      <td>${t.isWaste?`<span class="badge badge-waste">💸 ${t.wasteReason}</span>`:'-'}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="delTx('${t.id}')">✕</button></td>
+    </tr>
+  `).join('');
+  
+  document.getElementById('recordTable').innerHTML = `
+    <thead><tr><th>日期</th><th>金额</th><th>分类</th><th>描述</th><th>标记</th><th></th></tr></thead>
+    <tbody>${tbody||'<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text2)">暂无记录，请导入账单或手动添加</td></tr>'}</tbody>
+  `;
+  document.getElementById('recordCount').textContent = `(共 ${data.transactions.length} 条)`;
+}
+
+function delTx(id) {
+  if (!confirm('确定删除这条记录？')) return;
+  const data = getData();
+  data.transactions = data.transactions.filter(t => t.id !== id);
+  saveData(data);
+  renderImport();
+}
+
+function clearAllData() {
+  if (!confirm('⚠️ 确定清空所有数据？此操作不可恢复！')) return;
+  if (!confirm('再次确认：真的要删除全部账单数据吗？')) return;
+  const data = getData();
+  data.transactions = [];
+  saveData(data);
+  renderImport();
+}
+
+function exportData() {
+  const data = getData();
+  const blob = new Blob([JSON.stringify(data.transactions, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'money-helper-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+
+// ===== 消费分析 =====
+let analysisPieChart=null, analysisBarChart=null;
+function renderAnalysis() {
+  const data = getData();
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  
+  const monthTx = data.transactions.filter(t => (t.date||'').startsWith(thisMonth));
+  const totalIncome = monthTx.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const totalExpense = monthTx.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  
+  document.getElementById('analysisStats').innerHTML = `
+    <div class="stat-card"><div class="label">💰 本月收入</div><div class="value income">¥${totalIncome.toFixed(2)}</div></div>
+    <div class="stat-card"><div class="label">💸 本月支出</div><div class="value expense">¥${totalExpense.toFixed(2)}</div></div>
+    <div class="stat-card"><div class="label">📊 收支比</div><div class="value" style="color:var(--info)">${totalIncome>0?Math.round(totalExpense/totalIncome*100):0}%</div></div>
+    <div class="stat-card"><div class="label">📝 总笔数</div><div class="value">${monthTx.length}</div></div>
+  `;
+  
+  // 饼图
+  const catMap = {};
+  monthTx.filter(t=>t.type==='expense').forEach(t => {
+    catMap[t.category] = (catMap[t.category]||0) + t.amount;
+  });
+  const labels = Object.keys(catMap).sort((a,b)=>catMap[b]-catMap[a]);
+  const values = labels.map(l=>catMap[l]);
+  const colors = ['#ef4444','#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899','#06b6d4','#f97316','#84cc16','#6366f1','#14b8a6','#a855f7','#78716c'];
+  
+  if (analysisPieChart) analysisPieChart.destroy();
+  const pctx = document.getElementById('analysisPie');
+  if (pctx && labels.length) {
+    analysisPieChart = new Chart(pctx, {
+      type: 'pie',
+      data: { labels, datasets: [{ data: values, backgroundColor: colors.slice(0,labels.length) }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { padding: 12, usePointStyle: true } },
+          tooltip: { callbacks: { label: ctx => `${ctx.label}: ¥${ctx.raw.toFixed(2)} (${Math.round(ctx.raw/totalExpense*100)}%)` } }
+        }
+      }
+    });
+  }
+  
+  // 月度趋势
+  const months = [];
+  for (let i=5;i>=0;i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  const monthData = months.map(m => {
+    const tx = data.transactions.filter(t => (t.date||'').startsWith(m)&&t.type==='expense');
+    const cats = {};
+    tx.forEach(t => { cats[t.category] = (cats[t.category]||0) + t.amount });
+    return cats;
+  });
+  const topCats = [...new Set(data.transactions.filter(t=>t.type==='expense').map(t=>t.category))].slice(0,6);
+  const datasets = topCats.map((cat,i) => ({
+    label: cat, data: monthData.map(md => +(md[cat]||0).toFixed(2)),
+    backgroundColor: colors[i], borderRadius: 4, stack: 'stack'
+  }));
+  
+  if (analysisBarChart) analysisBarChart.destroy();
+  const bctx = document.getElementById('analysisBar');
+  analysisBarChart = new Chart(bctx, {
+    type: 'bar',
+    data: { labels: months.map(m=>m.substring(5)), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } },
+      scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+    }
+  });
+  
+  // 分类明细表
+  document.getElementById('categoryTable').innerHTML = `
+    <thead><tr><th>分类</th><th>笔数</th><th>总额</th><th>占比</th><th>月均</th></tr></thead>
+    <tbody>${labels.map(l => {
+      const count = monthTx.filter(t=>t.category===l&&t.type==='expense').length;
+      const amt = catMap[l];
+      return `<tr>
+        <td>${CATEGORY_ICONS[l]||''} ${l}</td>
+        <td>${count}</td>
+        <td style="color:var(--danger)">¥${amt.toFixed(2)}</td>
+        <td><div class="progress-bar" style="width:120px;display:inline-block"><div class="fill red" style="width:${Math.round(amt/totalExpense*100)}%"></div></div> ${Math.round(amt/totalExpense*100)}%</td>
+        <td>¥${(amt/6).toFixed(2)}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  `;
+}
+
+// ===== 浪费识别 =====
+function renderWaste() {
+  const data = getData();
+  // 重新检测所有交易
+  data.transactions.forEach(t => {
+    if (t.type==='expense') {
+      const waste = detectWaste(t);
+      t.isWaste = waste.isWaste;
+      t.wasteReason = waste.reason;
+      t.saveAmount = waste.saveAmount;
+    }
+  });
+  saveData(data);
+  
+  const wasteTx = data.transactions.filter(t => t.isWaste);
+  const totalWasteAmount = wasteTx.reduce((s,t)=>s+t.amount,0);
+  const totalSaveAmount = wasteTx.reduce((s,t)=>s+(t.saveAmount||0),0);
+  
+  document.getElementById('wasteSummary').innerHTML = `🔍 共检测到 <strong>${wasteTx.length}</strong> 笔可优化消费，浪费金额 <strong>¥${totalWasteAmount.toFixed(2)}</strong>，预计可节省 <strong>¥${totalSaveAmount.toFixed(2)}</strong>`;
+  document.getElementById('wasteStats').innerHTML = `
+    <div class="stat-card"><div class="label">🗑️ 浪费消费笔数</div><div class="value" style="color:var(--warning)">${wasteTx.length}</div></div>
+    <div class="stat-card"><div class="label">💸 浪费总金额</div><div class="value expense">¥${totalWasteAmount.toFixed(2)}</div></div>
+    <div class="stat-card"><div class="label">🛡️ 预计可省</div><div class="value saved">¥${totalSaveAmount.toFixed(2)}</div></div>
+  `;
+  
+  document.getElementById('wasteTable').innerHTML = `
+    <thead><tr><th>日期</th><th>金额</th><th>分类</th><th>描述</th><th>浪费原因</th><th>可省金额</th></tr></thead>
+    <tbody>${wasteTx.length ? wasteTx.map(t=>`
+      <tr>
+        <td>${t.date}</td>
+        <td style="color:var(--danger)">-¥${t.amount.toFixed(2)}</td>
+        <td>${CATEGORY_ICONS[t.category]||''} ${t.category}</td>
+        <td>${t.description}</td>
+        <td><span class="badge badge-waste">${t.wasteReason}</span></td>
+        <td><span class="badge badge-save">省 ¥${(t.saveAmount||0).toFixed(2)}</span></td>
+      </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text2)">🎉 没有检测到浪费消费，继续保持！</td></tr>'}</tbody>
+  `;
+}
+
+// ===== 省钱方案 =====
+function generatePlan() {
+  const data = getData();
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  
+  const monthTx = data.transactions.filter(t => (t.date||'').startsWith(thisMonth)&&t.type==='expense');
+  const catMap = {};
+  monthTx.forEach(t => { catMap[t.category] = (catMap[t.category]||0) + t.amount });
+  
+  const wasteTx = data.transactions.filter(t => t.isWaste);
+  const totalSave = wasteTx.reduce((s,t)=>s+(t.saveAmount||0),0);
+  const totalExpense = monthTx.reduce((s,t)=>s+t.amount,0);
+  
+  const plans = [
+    { icon:'🎯', title:'本月省钱目标', desc:`控制总支出在 ¥${Math.round(totalExpense*0.8).toFixed(2)} 以内，比上月减少 20%，可省 ¥${Math.round(totalExpense*0.2).toFixed(2)}。` },
+  ];
+  
+  // 针对最大支出类别
+  const sortedCats = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  const tips = {
+    '餐饮':['减少外卖次数，每周至少自己做3顿饭','午餐自带便当，月省约 ¥200-400','奶茶/咖啡限制为每周2杯'],
+    '购物':['列购物清单，避免冲动消费','加入购物车后等待24小时再决定','拼多多/1688比价后再下单'],
+    '娱乐':['取消不常用的视频/音乐会员','用免费活动替代付费娱乐','关注银行/运营商免费会员权益'],
+    '交通':['短途选择共享单车代替打车','地铁出行代替网约车','拼车分摊费用'],
+    '充值':['关闭不必要的自动续费','检查所有订阅服务是否还在使用','虚拟消费设置月度上限'],
+    '服饰':['每季度只买2-3件必需衣物','换季时反季节购买折扣更大','二手平台淘品质好货'],
+    '数码':['计划性更新，不追新款','大促期间（618/双11）集中采购','以旧换新抵扣费用'],
+  };
+  
+  sortedCats.slice(0,5).forEach(([cat, amt]) => {
+    const catTips = tips[cat] || [`合理控制${cat}支出，设置月度预算 ¥${Math.round(amt*0.7)}`];
+    plans.push({
+      icon: CATEGORY_ICONS[cat]||'📌',
+      title: `${cat}省钱计划（当前 ¥${amt.toFixed(0)}/月）`,
+      desc: `<ul style="padding-left:20px;line-height:2">${catTips.map(t=>`<li>${t}</li>`).join('')}</ul>`
+    });
+  });
+  
+  // 针对浪费消费
+  if (wasteTx.length) {
+    const wasteCats = {};
+    wasteTx.forEach(t => { wasteCats[t.category] = (wasteCats[t.category]||0) + (t.saveAmount||0); });
+    plans.push({
+      icon: '🛡️',
+      title: '消除浪费消费（可省金额排行）',
+      desc: `<ul style="padding-left:20px;line-height:2">${Object.entries(wasteCats).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>`<li>${CATEGORY_ICONS[cat]||''} ${cat}：可省 <strong>¥${amt.toFixed(2)}</strong></li>`).join('')}</ul><p style="margin-top:8px;font-weight:600;color:var(--success)">💰 合计可省：¥${totalSave.toFixed(2)}</p>`
+    });
+  }
+  
+  // 额外省钱技巧
+  plans.push({
+    icon: '✨',
+    title: '通用省钱技巧',
+    desc: `<ul style="padding-left:20px;line-height:2">
+      <li>📱 使用记账APP记录每一笔消费</li>
+      <li>🛒 大额消费前先比价3个平台</li>
+      <li>🎫 善用银行/信用卡优惠活动</li>
+      <li>📦 批量采购日用品更划算</li>
+      <li>💡 养成「延迟满足」的习惯，想买的东西先等3天</li>
+      <li>🏦 每月收入到账先存10%，再消费</li>
+    </ul>`
+  });
+  
+  renderPlan(plans);
+}
+
+function renderPlan(plans) {
+  if (!plans) generatePlan();
+  else {
+    document.getElementById('planContent').innerHTML = plans.map(p => `
+      <div class="card" style="border-left:4px solid var(--primary)">
+        <h3>${p.icon} ${p.title}</h3>
+        <div style="font-size:14px;color:var(--text);line-height:1.8">${p.desc}</div>
+      </div>
+    `).join('');
+  }
+}
+
+// ===== 预算 =====
+function setBudget() {
+  const amount = parseFloat(document.getElementById('budgetAmount').value);
+  if (!amount || amount <= 0) { alert('请输入有效金额'); return; }
+  const data = getData();
+  data.budget = amount;
+  saveData(data);
+  renderBudget();
+}
+
+function renderBudget() {
+  const data = getData();
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  
+  document.getElementById('budgetAmount').value = data.budget || '';
+  
+  if (!data.budget) {
+    document.getElementById('budgetStatus').classList.add('hidden');
+    document.getElementById('budgetAlert').classList.add('hidden');
+    return;
+  }
+  
+  const monthTx = data.transactions.filter(t => (t.date||'').startsWith(thisMonth)&&t.type==='expense');
+  const spent = monthTx.reduce((s,t)=>s+t.amount,0);
+  const pct = Math.round(spent / data.budget * 100);
+  const remain = data.budget - spent;
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+  const dayOfMonth = now.getDate();
+  const dailyBudget = data.budget / daysInMonth;
+  const expectedSpent = dailyBudget * dayOfMonth;
+  
+  document.getElementById('budgetStatus').classList.remove('hidden');
+  document.getElementById('budgetSpent').innerHTML = `<span style="color:${pct>80?'var(--danger)':'var(--success)};font-size:20px;font-weight:700">¥${spent.toFixed(2)}</span> / ¥${data.budget}`;
+  document.getElementById('budgetBar').style.width = Math.min(pct,100)+'%';
+  document.getElementById('budgetBar').className = 'fill ' + (pct>90?'red':pct>70?'yellow':'green');
+  document.getElementById('budgetPercent').textContent = `已用 ${pct}%（合理进度 ~${Math.round(dayOfMonth/daysInMonth*100)}%）`;
+  document.getElementById('budgetRemain').textContent = `剩余 ¥${remain.toFixed(2)}（每日可用约 ¥${(remain/Math.max(1,daysInMonth-dayOfMonth)).toFixed(0)}）`;
+  
+  // 超支提醒
+  if (pct > 80) {
+    document.getElementById('budgetAlert').classList.remove('hidden');
+    document.getElementById('budgetAlert').innerHTML = `<div class="alert alert-danger"><strong>🚨 预算告急！</strong> 本月已消费 ${pct}%，超出合理进度。建议接下来的消费控制在 ¥${Math.max(0,Math.round(data.budget-expectedSpent)).toFixed(0)} 以内。</div>`;
+    if (pct >= 100) {
+      document.getElementById('budgetModalMsg').innerHTML = `💸 你已经花掉 <strong style="color:#ef4444">¥${spent.toFixed(2)}</strong><br>超过预算 ¥${Math.abs(remain).toFixed(2)}<br><br>📢 <strong>"钱包君已经哭晕在厕所！<br>这个月剩下几天就靠吃土了…"</strong><br><br>别担心，下个月重新开始～`;
+      document.getElementById('budgetModal').classList.remove('hidden');
+    }
+  } else {
+    document.getElementById('budgetAlert').classList.add('hidden');
+  }
+}
+
+function closeBudgetModal() {
+  document.getElementById('budgetModal').classList.add('hidden');
+}
+
+// ===== 攒钱目标 =====
+function addGoal() {
+  const name = document.getElementById('goalName').value.trim();
+  const target = parseFloat(document.getElementById('goalTarget').value);
+  if (!name || !target) { alert('请填写目标名称和金额'); return; }
+  const data = getData();
+  data.goals.push({ id: Date.now().toString(), name, target, current: 0 });
+  saveData(data);
+  document.getElementById('goalName').value = '';
+  document.getElementById('goalTarget').value = '';
+  renderGoals();
+}
+
+function updateGoal(id, amount) {
+  const data = getData();
+  const goal = data.goals.find(g => g.id===id);
+  if (!goal) return;
+  goal.current = Math.min(goal.target, Math.max(0, goal.current + amount));
+  if (goal.current >= goal.target) {
+    setTimeout(() => {
+      alert(`🎉 恭喜！「${goal.name}」目标达成！`);
+    }, 300);
+  }
+  saveData(data);
+  renderGoals();
+}
+
+function delGoal(id) {
+  if (!confirm('确定删除这个目标？')) return;
+  const data = getData();
+  data.goals = data.goals.filter(g => g.id!==id);
+  saveData(data);
+  renderGoals();
+}
+
+function renderGoals() {
+  const data = getData();
+  const totalTarget = data.goals.reduce((s,g)=>s+g.target,0);
+  const totalCurrent = data.goals.reduce((s,g)=>s+g.current,0);
+  const totalSaved = data.transactions.filter(t=>t.isWaste).reduce((s,t)=>s+(t.saveAmount||0),0);
+  
+  document.getElementById('savingsStats').innerHTML = `
+    <div class="stat-card"><div class="label">🎯 目标总数</div><div class="value" style="color:var(--primary)">${data.goals.length}</div></div>
+    <div class="stat-card"><div class="label">💰 目标总额</div><div class="value">¥${totalTarget.toFixed(0)}</div></div>
+    <div class="stat-card"><div class="label">💎 已攒金额</div><div class="value success">¥${totalCurrent.toFixed(0)}</div></div>
+    <div class="stat-card"><div class="label">🛡️ 识别可省</div><div class="value saved">¥${totalSaved.toFixed(2)}</div></div>
+  `;
+  
+  document.getElementById('goalsList').innerHTML = data.goals.length ? data.goals.map(g => {
+    const pct = Math.round(g.current/g.target*100);
+    return `<div class="card mb-4">
+      <div class="flex-between mb-2">
+        <strong>${g.name}</strong>
+        <div>
+          <button class="btn btn-success btn-sm" onclick="updateGoal('${g.id}',100)">+100</button>
+          <button class="btn btn-success btn-sm" onclick="updateGoal('${g.id}',500)">+500</button>
+          <button class="btn btn-outline btn-sm" onclick="updateGoal('${g.id}',-100)">-100</button>
+          <button class="btn btn-danger btn-sm" onclick="delGoal('${g.id}')">🗑️</button>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="fill ${pct>=100?'green':pct>=50?'blue':'yellow'}" style="width:${Math.min(pct,100)}%"></div></div>
+      <div class="flex-between mt-2"><span class="text-sm">¥${g.current.toFixed(0)} / ¥${g.target.toFixed(0)}</span><span style="font-weight:700;font-size:18px;color:${pct>=100?'var(--success)':'var(--text)'}">${pct}%</span></div>
+      ${pct>=100?'<div class="alert alert-success mt-2">🎉 目标已达成！太棒了！</div>':''}
+    </div>`;
+  }).join('') : '<div class="empty-state"><div class="icon">🏆</div><p>还没有攒钱目标，快来设置第一个吧！</p></div>';
+}
+
+// ===== 省钱妙招 =====
+function renderTips() {
+  const allCats = ['全部','餐饮','购物','交通','娱乐','通讯','服饰','数码','日用','住房','充值'];
+  document.getElementById('tipCats').innerHTML = allCats.map((c,i) => 
+    `<button class="toggle-btn ${i===0?'active':''}" onclick="filterTips('${c}',this)">${c}</button>`
+  ).join('');
+  
+  const tipsData = {
+    '全部': [],
+    '餐饮': [
+      {title:'自己做饭代替外卖', desc:'一周至少3天自己做饭，每月可省 ¥300-600。推荐买菜APP：美团优选、多多买菜，价格比超市便宜30%。'},
+      {title:'奶茶咖啡限制', desc:'每周限制2杯奶茶/咖啡。一杯均价 ¥18，减到每周2杯月省约 ¥200。自己冲咖啡成本不到 ¥3/杯。'},
+      {title:'团购优惠优先', desc:'外出就餐前先在美团/大众点评查看团购券，通常可省 20-50%。工作午餐选择食堂或拼单更划算。'},
+      {title:'避免深夜外卖', desc:'晚10点后外卖配送费高，且容易冲动下单。提前储备速食食品，月省 ¥100+。'},
+      {title:'应季食材更便宜', desc:'购买当季蔬菜水果比反季节便宜 30-50%，且更新鲜健康。'},
+    ],
+    '购物': [
+      {title:'24小时冷静期', desc:'超过 ¥100 的非必需品，先加购物车等24小时，80%的冲动消费会消失。'},
+      {title:'多平台比价', desc:'大件商品至少比价3个平台（淘宝/京东/拼多多），价差可达 20%。安装比价插件自动提醒。'},
+      {title:'大促集中采购', desc:'日用品、护肤品等在618/双11集中囤货，日常价格贵30-50%。不要平时原价买。'},
+      {title:'善用返利平台', desc:'通过返利APP购物返现 1-10%，积少成多每年可省 ¥500+。'},
+    ],
+    '交通': [
+      {title:'地铁代替打车', desc:'通勤用公共交通，偶尔打车。每天省 ¥20，月省 ¥400+。下雨天/赶时间才打车。'},
+      {title:'共享单车月卡', desc:'3公里以内骑共享单车，月卡约 ¥15-20，比每次单独骑便宜 80%。短途不用打车。'},
+      {title:'拼车分摊', desc:'和朋友/同事拼车上班，费用减半。或选择顺风车比快车便宜40%。'},
+    ],
+    '娱乐': [
+      {title:'清理不用的会员', desc:'检查所有自动续费会员（视频/音乐/云盘），取消不常用的。平均可省 ¥50-200/月。'},
+      {title:'免费替代方案', desc:'图书馆代替买书，公园代替收费景点，B站免费内容代替付费课程，跑步代替健身房。'},
+      {title:'银行权益利用', desc:'很多信用卡赠送视频会员/电影票/星巴克券，检查你的银行卡权益别浪费。'},
+    ],
+    '通讯': [
+      {title:'降低套餐', desc:'检查实际流量和通话用量，很多人套餐超出实际需求。降档可省 ¥30-80/月。'},
+      {title:'宽带比价', desc:'宽带到期前比较各家优惠，携号转网或换套餐常有 50% 折扣。'},
+    ],
+    '服饰': [
+      {title:'胶囊衣橱', desc:'建立基础款衣橱（黑白灰为主），减少购买频率。每季只买 2-3 件新衣服。'},
+      {title:'反季购买', desc:'夏天买冬装、冬天买夏装，折扣可达 50-70%。关注品牌折扣店和奥特莱斯。'},
+    ],
+    '数码': [
+      {title:'不追新款', desc:'手机用2-3年再换，每年省 ¥2000+。性能和功能提升有限，不必年年换新。'},
+      {title:'二手也能买', desc:'闲鱼上淘品质二手数码，iPhone/相机折扣 30-50%。选信用好的卖家。'},
+    ],
+    '日用': [
+      {title:'批量采购', desc:'纸巾、洗衣液等快消品大促时批量采购，单价可低 30%。注意保质期。'},
+      {title:'平替大法', desc:'很多大牌日用品有平替品牌，效果差不多但价格只要 1/3。去小红书搜"平替"。'},
+    ],
+    '充值': [
+      {title:'关闭自动续费', desc:'立刻检查微信/支付宝/苹果的自动续费，关闭不需要的。很多人每月躺着被扣几百块。'},
+      {title:'虚拟消费限额', desc:'游戏充值、直播打赏等设置月度上限（建议不超过 ¥100），避免上头消费。'},
+    ],
+  };
+  
+  filterTips('全部', document.querySelector('#tipCats .toggle-btn'));
+}
+
+function filterTips(cat, btn) {
+  document.querySelectorAll('#tipCats .toggle-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  
+  const tipsData = {
+    '餐饮':[
+      {title:'自己做饭代替外卖', desc:'一周至少3天自己做饭，每月可省 ¥300-600。推荐买菜APP：美团优选、多多买菜，价格比超市便宜30%。'},
+      {title:'奶茶咖啡限制', desc:'每周限制2杯奶茶/咖啡。一杯均价 ¥18，减到每周2杯月省约 ¥200。'},
+      {title:'团购优惠优先', desc:'外出就餐前在美团/大众点评查看团购券，通常可省 20-50%。'},
+    ],
+    '购物':[
+      {title:'24小时冷静期', desc:'超过 ¥100 的非必需品，先加购物车等24小时，80%的冲动消费会消失。'},
+      {title:'多平台比价', desc:'大件商品至少比价3个平台（淘宝/京东/拼多多），价差可达 20%。'},
+      {title:'大促集中采购', desc:'日用品等在618/双11囤货，平时价格贵30-50%。'},
+    ],
+    '交通':[
+      {title:'地铁代替打车', desc:'通勤用公共交通，偶尔打车。每天省 ¥20，月省 ¥400+。'},
+      {title:'共享单车月卡', desc:'3公里以内骑共享单车，月卡约 ¥15-20，比单次便宜 80%。'},
+    ],
+    '娱乐':[
+      {title:'清理不用的会员', desc:'检查所有自动续费会员，取消不常用的。平均省 ¥50-200/月。'},
+      {title:'免费替代方案', desc:'图书馆代替买书，公园代替收费景点，跑步代替健身房。'},
+    ],
+  };
+  
+  if (cat === '全部') {
+    let all = [];
+    Object.values(tipsData).forEach(arr => all = all.concat(arr));
+    displayTips(all);
+  } else {
+    displayTips(tipsData[cat] || [{title:'暂无建议', desc:'导入账单后，AI会根据你的消费习惯生成个性化建议'}]);
+  }
+}
+
+function displayTips(tips) {
+  document.getElementById('tipsList').innerHTML = tips.map(t => `
+    <div class="tip-card">
+      <div class="cat">💡 省钱妙招</div>
+      <div class="title">${t.title}</div>
+      <div class="desc">${t.desc}</div>
+    </div>
+  `).join('');
+}
+
+// ===== 附近美食 =====
+function saveAmapKey() {
+  const key = document.getElementById('amapKey').value.trim();
+  const data = getData();
+  data.amapKey = key;
+  saveData(data);
+  alert('✅ API Key 已保存！');
+  renderFood();
+}
+
+function renderFood() {
+  const data = getData();
+  document.getElementById('amapKey').value = data.amapKey || '';
+  
+  // 示例美食数据
+  const sampleFoods = [
+    {name:'老王家牛肉面', price:15, save:'比周边均价低 ¥5', cat:'面馆', score:'4.8', dist:'500m', coupon:'满20减3'},
+    {name:'小巷子盖浇饭', price:12, save:'本月特惠', cat:'快餐', score:'4.6', dist:'300m', coupon:'学生优惠 ¥10'},
+    {name:'阿婆小馄饨', price:8, save:'性价比之王', cat:'小吃', score:'4.9', dist:'800m', coupon:'买二送一'},
+    {name:'幸福食堂', price:18, save:'两荤一素套餐', cat:'食堂', score:'4.5', dist:'200m', coupon:'充值返现'},
+    {name:'深夜豆浆', price:10, save:'宵夜优选', cat:'小吃', score:'4.7', dist:'600m', coupon:'满15减2'},
+    {name:'辣味川菜馆', price:22, save:'大份量实惠', cat:'川菜', score:'4.4', dist:'1.2km', coupon:'88折'},
+  ];
+  
+  document.getElementById('foodGrid').innerHTML = sampleFoods.map(f => `
+    <div class="food-card">
+      <div class="food-img">${f.cat==='面馆'?'🍜':f.cat==='快餐'?'🍱':f.cat==='小吃'?'🥟':f.cat==='食堂'?'🍚':f.cat==='川菜'?'🌶️':'🍽️'}</div>
+      <div class="food-body">
+        <div class="food-name">${f.name}</div>
+        <div class="food-meta">⭐ ${f.score} · 📍 ${f.dist} · 🏷️ ${f.cat}</div>
+        <div class="food-price mt-2">¥${f.price} <span style="font-size:13px;color:var(--text2)">起</span></div>
+        <div class="food-save">💰 ${f.save}</div>
+        <div class="food-meta">🎫 ${f.coupon}</div>
+        ${data.amapKey ? '<button class="btn btn-primary btn-sm mt-2" style="width:100%">🔗 查看导航</button>' : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== 工具函数 =====
+function switchTab(name) {
+  document.querySelectorAll('.nav button').forEach(b => {
+    b.classList.remove('active');
+    if (b.dataset.tab === name) b.classList.add('active');
+  });
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  refreshTab(name);
+}
+
+// ===== 初始化 =====
+function init() {
+  // 初始化 manDate
+  document.getElementById('manDate').value = new Date().toISOString().slice(0,10);
+  renderDashboard();
+}
+init();
+</script>
+
+</body>
+</html>
